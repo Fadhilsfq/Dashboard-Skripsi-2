@@ -287,7 +287,7 @@ if page == "🔍 Analisis Teks":
     st.markdown("""
     <div class='hero-banner'>
         <p class='hero-title'>🧠 DepreScan</p>
-        <p class='hero-sub'>Deteksi Risiko Depresi dari Teks Bebas</p>
+        <p class='hero-sub'>Deteksi Risiko Depresi dini dari Teks</p>
     </div>
     """, unsafe_allow_html=True)
 
