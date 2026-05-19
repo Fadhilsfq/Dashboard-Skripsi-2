@@ -198,7 +198,7 @@ def highlight_signals(text: str, signals: list) -> str:
     """Bungkus kata sinyal dengan tag <mark> berwarna ungu."""
     highlighted = text
     for signal in signals:
-        if signal and signal != "Tidak ada sinyal bahaya spesifik":
+        if signal and signal != "Tidak ada Gangguan Kesehatan yang spesifik":
             # case-insensitive replace dengan mempertahankan teks asli
             pattern = re.compile(re.escape(signal), re.IGNORECASE)
             highlighted = pattern.sub(
@@ -251,7 +251,7 @@ def analyze_text_local(text: str) -> dict:
     return {
         "risk_percentage": risk_percentage,
         "category": category,
-        "detected_signals": detected_signals if detected_signals else ["Tidak ada sinyal bahaya spesifik"],
+        "detected_signals": detected_signals if detected_signals else ["Tidak ada Gangguan Kesehatan yang spesifik"],
         "emotional_tone": tone,
         "recommendation": rec,
         "confidence": 85
@@ -415,10 +415,10 @@ if page == "🔍 Analisis Teks":
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                st.markdown(f"**🎵 Nada Emosional:** {tone}")
+                st.markdown(f"** Nada Emosional:** {tone}")
 
             with col2:
-                st.markdown("**🔍 Sinyal yang Terdeteksi:**")
+                st.markdown("** Gangguan Kesehatan yang Terdeteksi:**")
                 for s in signals:
                     st.markdown(f"- `{s}`")
 
