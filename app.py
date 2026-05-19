@@ -301,34 +301,36 @@ if page == "🔍 Analisis Teks":
     with col_info:
         st.markdown("""
         <div class='metric-card' style='margin-bottom:0.8rem;'>
-            <div class='metric-label'>Didukung oleh</div>
-            <div style='color:#7c83fd; font-weight:700; font-size:1.1rem;'>Local NLP Engine</div>
+            <div class='metric-label'>Model algoritma: </div>
+            <div style='color:#7c83fd; font-weight:700; font-size:1.1rem;'>CatBoost + Bayesian Optimization + Optimasi Threshold</div>
         </div>
         <div class='metric-card'>
             <div class='metric-label'>Bahasa yang didukung</div>
-            <div style='color:#7c83fd; font-weight:700; font-size:1rem;'>🇮🇩 Bahasa Indonesia<br>🇺🇸 English</div>
+            <div style='color:#7c83fd; font-weight:700; font-size:1rem;'> Bahasa Indonesia<br> English</div>
         </div>
         """, unsafe_allow_html=True)
 
     # Example prompts
-    st.markdown("**💡 Contoh ungkapan:**")
+    st.markdown("**Contoh ungkapan:**")
     ex_cols = st.columns(3)
     examples = [
         "ah capek banget, pengen istirahat selamanya",
         "hari ini berjalan lancar, tapi aku agak lelah",
-        "ingin bunuh diri, rasanya semua sia-sia"
+        "ingin bunuh diri, rasanya sia-sia"
     ]
     for i, ex in enumerate(examples):
         with ex_cols[i]:
             if st.button(f'"{ex[:30]}..."', key=f"ex{i}"):
-                st.session_state["example_text"] = ex
+                st.session_state["auto_text"] = ex
+                st.session_state["auto_analyze"] = True
                 st.rerun()
 
-    if "example_text" in st.session_state:
+    if "auto_text" in st.session_state:
         user_text = st.session_state.pop("example_text")
+    should_analyze = analyze_btn or st.session_state.pop("auto_analyze", False)
 
     # ── Analysis Result ─────────────────────────────────────────────────────
-    if analyze_btn and user_text.strip():
+    if should_analyze and user_text.strip():
         with st.spinner("⏳ Menganalisis teks secara lokal..."):
             result = analyze_text_local(user_text.strip())
 
@@ -379,7 +381,7 @@ if page == "🔍 Analisis Teks":
                 st.pyplot(fig, use_container_width=True)
                 plt.close()
 
-                st.markdown(f"**🎭 Nada Emosional:** {tone}")
+                st.markdown(f"** Nada Emosional:** {tone}")
 
             with col2:
                 if signals:
@@ -404,7 +406,8 @@ if page == "🔍 Analisis Teks":
 
     st.markdown("""
     <div class='disclaimer'>
-        ⚠️ <b>Disclaimer:</b> Analisis ini bersifat informatif menggunakan pendekatan leksikon lokal dan tidak menggantikan diagnosis medis profesional.
+         <b>Disclaimer:</b> Tools ini bukan pengganti diagnosis klinis. Jika membutuhkan bantuan hubungi hotline
+    <b>119 ext 8</b> (Kemenkes RI).
     </div>
     """, unsafe_allow_html=True)
 
