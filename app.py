@@ -381,7 +381,7 @@ if page == "🔍 Analisis Teks":
                 st.pyplot(fig, use_container_width=True)
                 plt.close()
 
-                st.markdown(f"** Nada Emosional:** {tone}")
+                st.markdown(f" Nada Emosional: {tone}")
 
             with col2:
                 if signals:
