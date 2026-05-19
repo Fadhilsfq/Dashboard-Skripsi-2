@@ -326,7 +326,7 @@ if page == "🔍 Analisis Teks":
                 st.rerun()
 
     if "auto_text" in st.session_state:
-        user_text = st.session_state.pop("example_text")
+        user_text = st.session_state.pop("auto_text")
     should_analyze = analyze_btn or st.session_state.pop("auto_analyze", False)
 
     # ── Analysis Result ─────────────────────────────────────────────────────
