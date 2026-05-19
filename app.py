@@ -415,17 +415,17 @@ if page == "🔍 Analisis Teks":
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                st.markdown(f"** Nada Emosional:** {tone}")
+                st.markdown(f"Nada Emosional: {tone}")
 
             with col2:
-                st.markdown("** Gangguan Kesehatan yang Terdeteksi:**")
+                st.markdown("Gangguan Kesehatan yang Terdeteksi:")
                 for s in signals:
                     st.markdown(f"- `{s}`")
 
             st.markdown(f"""
             <div style='background:#1a2030; border-left:3px solid #7c83fd; padding:1rem;
                         border-radius:0 10px 10px 0; margin-top:1rem;'>
-                <b style='color:#a8b2d8;'>💡 Rekomendasi</b><br>
+                <b style='color:#a8b2d8;'> Rekomendasi</b><br>
                 <span style='color:#ccd6f6;'>{rec}</span>
             </div>
             """, unsafe_allow_html=True)
