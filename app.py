@@ -27,7 +27,6 @@ st.markdown("""
 
     .main { background: #0f1117; }
 
-    /* Hero banner */
     .hero-banner {
         background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
         border-radius: 16px;
@@ -48,7 +47,6 @@ st.markdown("""
         margin-top: 0.5rem;
     }
 
-    /* Metric cards */
     .metric-card {
         background: #1e2130;
         border-radius: 12px;
@@ -67,7 +65,6 @@ st.markdown("""
         margin-top: 0.2rem;
     }
 
-    /* Result cards */
     .result-card {
         border-radius: 14px;
         padding: 1.5rem;
@@ -86,7 +83,6 @@ st.markdown("""
         border: 1px solid #1a7a1a;
     }
 
-    /* Section header */
     .section-header {
         font-size: 1.15rem;
         font-weight: 600;
@@ -96,7 +92,6 @@ st.markdown("""
         margin-bottom: 1rem;
     }
 
-    /* Text area styling */
     .stTextArea textarea {
         background: #1a1d2e !important;
         border: 1px solid #3a3d5e !important;
@@ -105,7 +100,6 @@ st.markdown("""
         font-size: 1rem !important;
     }
 
-    /* Button */
     .stButton > button {
         background: linear-gradient(135deg, #7c83fd, #4facfe);
         color: white;
@@ -119,7 +113,6 @@ st.markdown("""
     }
     .stButton > button:hover { opacity: 0.85; }
 
-    /* Disclaimer */
     .disclaimer {
         background: #1a1d2e;
         border: 1px solid #2d3a5e;
@@ -130,7 +123,6 @@ st.markdown("""
         margin-top: 1rem;
     }
 
-    /* Sidebar */
     [data-testid="stSidebar"] {
         background: #13151f;
         border-right: 1px solid #1e2130;
@@ -151,16 +143,15 @@ def train_model(df):
         data.drop(['id'], axis=1, inplace=True)
     data.dropna(inplace=True)
 
-    # Feature engineering
     sleep_map = {'Less than 5 hours': 1, '5-6 hours': 2, '7-8 hours': 3, 'More than 8 hours': 4, 'Others': 2}
     data['Sleep_Score'] = data['Sleep Duration'].map(sleep_map).fillna(2)
     diet_map = {'Unhealthy': 1, 'Moderate': 2, 'Healthy': 3, 'Others': 2}
     data['Diet_Score'] = data['Dietary Habits'].map(diet_map).fillna(2)
-    data['Total_Pressure']         = data['Academic Pressure'] + data['Work Pressure'] + data['Financial Stress']
-    data['Satisfaction_Index']     = data['Study Satisfaction'] + data['Job Satisfaction']
+    data['Total_Pressure']            = data['Academic Pressure'] + data['Work Pressure'] + data['Financial Stress']
+    data['Satisfaction_Index']        = data['Study Satisfaction'] + data['Job Satisfaction']
     data['Stress_Satisfaction_Ratio'] = data['Total_Pressure'] / (data['Satisfaction_Index'] + 1)
-    data['Suicidal_Thoughts']      = data['Have you ever had suicidal thoughts ?'].map({'Yes': 1, 'No': 0})
-    data['Family_History']         = data['Family History of Mental Illness'].map({'Yes': 1, 'No': 0})
+    data['Suicidal_Thoughts']         = data['Have you ever had suicidal thoughts ?'].map({'Yes': 1, 'No': 0})
+    data['Family_History']            = data['Family History of Mental Illness'].map({'Yes': 1, 'No': 0})
     data.drop(['Have you ever had suicidal thoughts ?', 'Family History of Mental Illness',
                'Sleep Duration', 'Dietary Habits'], axis=1, inplace=True)
 
@@ -180,10 +171,10 @@ def train_model(df):
     )
     model.fit(X_train, y_train, cat_features=cat_features)
 
-    y_pred  = model.predict(X_test)
-    acc     = accuracy_score(y_test, y_pred)
-    report  = classification_report(y_test, y_pred, output_dict=True)
-    cm      = confusion_matrix(y_test, y_pred)
+    y_pred = model.predict(X_test)
+    acc    = accuracy_score(y_test, y_pred)
+    report = classification_report(y_test, y_pred, output_dict=True)
+    cm     = confusion_matrix(y_test, y_pred)
 
     return model, X_train.columns.tolist(), cat_features, acc, report, cm
 
@@ -202,46 +193,60 @@ def preprocess_input(user_input: dict) -> pd.DataFrame:
     row['Stress_Satisfaction_Ratio'] = row['Total_Pressure'] / (row['Satisfaction_Index'] + 1)
     return pd.DataFrame([row])
 
-# ─── Local Text Analysis (Menggantikan API Claude) ───────────────────────────
+# ─── Fungsi Highlight Sinyal ──────────────────────────────────────────────────
+def highlight_signals(text: str, signals: list) -> str:
+    """Bungkus kata sinyal dengan tag <mark> berwarna ungu."""
+    highlighted = text
+    for signal in signals:
+        if signal and signal != "Tidak ada sinyal bahaya spesifik":
+            # case-insensitive replace dengan mempertahankan teks asli
+            pattern = re.compile(re.escape(signal), re.IGNORECASE)
+            highlighted = pattern.sub(
+                lambda m: (
+                    f"<mark style='background:rgba(124,131,253,0.25); "
+                    f"color:#b0b8ff; border-radius:4px; padding:1px 5px;'>"
+                    f"{m.group(0)}</mark>"
+                ),
+                highlighted
+            )
+    return highlighted
+
+# ─── Local Text Analysis ──────────────────────────────────────────────────────
 def analyze_text_local(text: str) -> dict:
     """Fungsi Rule-Based NLP untuk mendeteksi depresi secara lokal."""
     text_lower = text.lower()
-    
-    # Kamus kata kunci (Lexicon)
+
     high_risk_words = ['bunuh diri', 'mati', 'suicide', 'kill', 'end it', 'sia-sia', 'selamanya', 'hopeless', 'akhiri', 'berakhir', 'menyerah']
-    mid_risk_words = ['capek', 'lelah', 'stres', 'depresi', 'sedih', 'nangis', 'tired', 'sad', 'cry', 'stress', 'hancur', 'beban', 'sakit', 'sendiri', 'kesepian']
-    
+    mid_risk_words  = ['capek', 'lelah', 'stres', 'depresi', 'sedih', 'nangis', 'tired', 'sad', 'cry', 'stress', 'hancur', 'beban', 'sakit', 'sendiri', 'kesepian']
+
     detected_signals = []
     score = 0
-    
-    # Deteksi dan pembobotan
+
     for word in high_risk_words:
         if word in text_lower:
             detected_signals.append(word)
             score += 40
-            
+
     for word in mid_risk_words:
         if word in text_lower:
             detected_signals.append(word)
             score += 15
-            
-    # Kalkulasi Risiko
-    risk_percentage = min(score, 95) # Cap di 95% untuk rule-based
-    
+
+    risk_percentage = min(score, 95)
+
     if risk_percentage == 0:
-        # Jika tidak ada kata kunci negatif, berikan skor acak rendah sebagai baseline
         risk_percentage = np.random.randint(2, 12)
         category = "RENDAH"
         tone = "Netral / Tidak ada distress eksplisit"
-        rec = "Tetap pertahankan aktivitas positif Anda dan jaga pola tidur yang sehat."
+        rec  = "Tetap pertahankan aktivitas positif Anda dan jaga pola tidur yang sehat."
     elif risk_percentage < 45:
         category = "SEDANG"
         tone = "Kelelahan / Stres Emosional"
-        rec = "Pertimbangkan untuk mengambil jeda istirahat atau berbicara dengan orang yang Anda percayai."
+        rec  = "Pertimbangkan untuk mengambil jeda istirahat atau berbicara dengan orang yang Anda percayai."
     else:
         category = "TINGGI"
         tone = "Putus Asa / Depresi Berat"
-        rec = "Teks Anda menunjukkan tekanan yang tinggi. Sangat disarankan untuk berkonsultasi dengan profesional kesehatan mental."
+        rec  = "Teks Anda menunjukkan tekanan yang tinggi. Sangat disarankan untuk berkonsultasi dengan profesional kesehatan mental."
 
     return {
         "risk_percentage": risk_percentage,
@@ -249,10 +254,10 @@ def analyze_text_local(text: str) -> dict:
         "detected_signals": detected_signals if detected_signals else ["Tidak ada sinyal bahaya spesifik"],
         "emotional_tone": tone,
         "recommendation": rec,
-        "confidence": 85 # Statis untuk rule-based matching
+        "confidence": 85
     }
 
-# ─── Sidebar ─────────────────────────────────────────────────────────────────
+# ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("## 🧠 DepreScan")
     st.markdown("---")
@@ -261,7 +266,8 @@ with st.sidebar:
     st.markdown("""
     <div style='font-size:0.78rem; color:#8892b0;'>
     ⚠️ <b>Disclaimer</b><br>
-    Tools ini bukan pengganti diagnosis klinis. Jika Anda atau seseorang membutuhkan bantuan, hubungi profesional kesehatan mental atau hotline <b>119 ext 8</b>.
+    Tools ini bukan pengganti diagnosis klinis. Jika Anda atau seseorang membutuhkan bantuan,
+    hubungi profesional kesehatan mental atau hotline <b>119 ext 8</b>.
     </div>
     """, unsafe_allow_html=True)
 
@@ -292,7 +298,10 @@ if page == "🔍 Analisis Teks":
     with col_input:
         user_text = st.text_area(
             "",
-            placeholder='Contoh: "Aku udah capek banget, rasanya nggak ada yang peduli sama aku..."\natau\n"I\'ve been feeling really hopeless lately, nothing seems to matter anymore."',
+            placeholder=(
+                'Contoh: "Aku udah capek banget, rasanya nggak ada yang peduli sama aku..."\n'
+                'atau\n"I\'ve been feeling really hopeless lately, nothing seems to matter anymore."'
+            ),
             height=180,
             label_visibility="collapsed"
         )
@@ -301,60 +310,69 @@ if page == "🔍 Analisis Teks":
     with col_info:
         st.markdown("""
         <div class='metric-card' style='margin-bottom:0.8rem;'>
-            <div class='metric-label'>Model algoritma: </div>
-            <div style='color:#7c83fd; font-weight:700; font-size:1.1rem;'>CatBoost + Bayesian Optimization + Optimasi Threshold</div>
+            <div class='metric-label'>Model algoritma:</div>
+            <div style='color:#7c83fd; font-weight:700; font-size:1.1rem;'>
+                CatBoost + Bayesian Optimization + Optimasi Threshold
+            </div>
         </div>
         <div class='metric-card'>
             <div class='metric-label'>Bahasa yang didukung</div>
-            <div style='color:#7c83fd; font-weight:700; font-size:1rem;'> Bahasa Indonesia<br> English</div>
+            <div style='color:#7c83fd; font-weight:700; font-size:1rem;'>
+                🇮🇩 Bahasa Indonesia<br>🇬🇧 English
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
-    # Example prompts
-    st.markdown("**Contoh ungkapan:**")
-    ex_cols = st.columns(3)
+    # ── Example prompts ──────────────────────────────────────────────────────
+    st.markdown("**💡 Contoh ungkapan:**")
     examples = [
         "ah capek banget, pengen istirahat selamanya",
         "hari ini berjalan lancar, tapi aku agak lelah",
         "ingin bunuh diri, rasanya sia-sia"
     ]
+    ex_cols = st.columns(3)
     for i, ex in enumerate(examples):
         with ex_cols[i]:
             if st.button(f'"{ex[:30]}..."', key=f"ex{i}"):
-                st.session_state["auto_text"] = ex
+                st.session_state["auto_text"]    = ex
                 st.session_state["auto_analyze"] = True
                 st.rerun()
 
+    # Ambil teks dari pintasan jika ada
     if "auto_text" in st.session_state:
         user_text = st.session_state.pop("auto_text")
+
     should_analyze = analyze_btn or st.session_state.pop("auto_analyze", False)
 
-    # ── Analysis Result ─────────────────────────────────────────────────────
+    # ── Analysis Result ───────────────────────────────────────────────────────
     if should_analyze and user_text.strip():
         with st.spinner("⏳ Menganalisis teks secara lokal..."):
             result = analyze_text_local(user_text.strip())
-    st.markdown("Teks yang dianalisis: ")
-    st.markdown(
-        f"""
-        <div style='background:#1a1d2e; border:1px solid #3a3d5e;
-                    border-radius:10px; padding:1rem 1.1rem; margin-bottom:1rem;
-                    font-size:1rem; color:#e0e6ff; line-height:1.6;'>
-            {highlight_signals(user_text.strip(), result.get("detected_signals", []))}
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 
         if "error" in result:
             st.error(f"Gagal menganalisis: {result['error']}")
         else:
-            risk_pct = result.get("risk_percentage", 0)
-            category = result.get("category", "RENDAH")
-            signals  = result.get("detected_signals", [])
-            tone     = result.get("emotional_tone", "-")
-            rec      = result.get("recommendation", "-")
-            conf     = result.get("confidence", 0)
+            risk_pct  = result.get("risk_percentage", 0)
+            category  = result.get("category", "RENDAH")
+            signals   = result.get("detected_signals", [])
+            tone      = result.get("emotional_tone", "-")
+            rec       = result.get("recommendation", "-")
+            conf      = result.get("confidence", 0)
 
+            # ── Kotak preview teks yang dianalisis ──
+            st.markdown("<div class='section-header'>📝 Teks yang Dianalisis</div>", unsafe_allow_html=True)
+            st.markdown(
+                f"""
+                <div style='background:#1a1d2e; border:1px solid #3a3d5e;
+                            border-radius:10px; padding:1rem 1.1rem; margin-bottom:1rem;
+                            font-size:1rem; color:#e0e6ff; line-height:1.6;'>
+                    {highlight_signals(user_text.strip(), signals)}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+            # ── Kartu hasil ──
             cat_class = {"RENDAH": "result-low", "SEDANG": "result-mid", "TINGGI": "result-high"}.get(category, "result-low")
             cat_color = {"RENDAH": "#4caf50", "SEDANG": "#ffc107", "TINGGI": "#f44336"}.get(category, "#4caf50")
             cat_icon  = {"RENDAH": "✅", "SEDANG": "⚠️", "TINGGI": "🚨"}.get(category, "✅")
@@ -369,49 +387,51 @@ if page == "🔍 Analisis Teks":
                     <div style='font-size:2.5rem;'>{cat_icon}</div>
                 </div>
                 <div style='margin-top:0.8rem;'>
-                    <span style='background:{cat_color}33; color:{cat_color}; padding:0.2rem 0.8rem; border-radius:20px; font-size:0.9rem; font-weight:600;'>
+                    <span style='background:{cat_color}33; color:{cat_color}; padding:0.2rem 0.8rem;
+                                 border-radius:20px; font-size:0.9rem; font-weight:600;'>
                         {category}
                     </span>
-                    <span style='color:#8892b0; margin-left:1rem; font-size:0.85rem;'>Akurasi Model: {conf}%</span>
+                    <span style='color:#8892b0; margin-left:1rem; font-size:0.85rem;'>
+                        Akurasi Model: {conf}%
+                    </span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
             col1, col2 = st.columns(2)
             with col1:
-                # Progress bar visual
-               bar_color = '#f44336' if risk_pct > 70 else '#ffc107' if risk_pct > 30 else '#4caf50'
+                # Progress bar HTML
+                bar_color = '#f44336' if risk_pct > 70 else '#ffc107' if risk_pct > 30 else '#4caf50'
                 st.markdown(f"""
-                    <div style='margin-bottom:0.5rem;'>
-                        <div style='height:10px; background:#2a2d3e; border-radius:10px; overflow:hidden;'>
-                    <div style='height:100%; width:{risk_pct}%; background:{bar_color};
-                        border-radius:10px; transition:width 0.5s;'></div>
+                <div style='margin:0.8rem 0 0.4rem;'>
+                    <div style='height:10px; background:#2a2d3e; border-radius:10px; overflow:hidden;'>
+                        <div style='height:100%; width:{risk_pct}%; background:{bar_color};
+                                    border-radius:10px;'></div>
                     </div>
                     <div style='display:flex; justify-content:space-between;
-                            font-size:10px; color:#8892b0; margin-top:3px;'>
-                    <span>0%</span><span>Rendah</span>
-                    <span>Sedang</span><span>Tinggi</span><span>100%</span>
+                                font-size:10px; color:#8892b0; margin-top:3px;'>
+                        <span>0%</span><span>Rendah</span>
+                        <span>Sedang</span><span>Tinggi</span><span>100%</span>
                     </div>
-                    </div>
-    """, unsafe_allow_html=True)
-
-                st.markdown(f" Nada Emosional: {tone}")
+                </div>
+                """, unsafe_allow_html=True)
+                st.markdown(f"**🎵 Nada Emosional:** {tone}")
 
             with col2:
-                if signals:
-                    st.markdown("**Gangguan Kesehatan yang Terdeteksi:**")
-                    for s in signals:
-                        st.markdown(f"- `{s}`")
+                st.markdown("**🔍 Sinyal yang Terdeteksi:**")
+                for s in signals:
+                    st.markdown(f"- `{s}`")
 
             st.markdown(f"""
-            <div style='background:#1a2030; border-left:3px solid #7c83fd; padding:1rem; border-radius:0 10px 10px 0; margin-top:1rem;'>
+            <div style='background:#1a2030; border-left:3px solid #7c83fd; padding:1rem;
+                        border-radius:0 10px 10px 0; margin-top:1rem;'>
                 <b style='color:#a8b2d8;'>💡 Rekomendasi</b><br>
                 <span style='color:#ccd6f6;'>{rec}</span>
             </div>
             """, unsafe_allow_html=True)
 
             if category == "TINGGI":
-                st.error("🚨 **Perhatian:** Teks menunjukkan risiko tinggi. Segera hubungi profesional kesehatan mental atau hubungi hotline **119 ext 8** (Kemenkes RI) atau **1500-454** (Into The Light Indonesia).")
+                st.error("🚨 **Perhatian:** Teks menunjukkan risiko tinggi. Segera hubungi profesional kesehatan mental atau hotline **119 ext 8** (Kemenkes RI) atau **1500-454** (Into The Light Indonesia).")
             elif category == "SEDANG":
                 st.warning("⚠️ **Perhatian:** Ada beberapa tanda yang perlu diperhatikan. Pertimbangkan untuk berbicara dengan seseorang yang Anda percaya atau konsultan kesehatan.")
 
@@ -420,8 +440,8 @@ if page == "🔍 Analisis Teks":
 
     st.markdown("""
     <div class='disclaimer'>
-         <b>Disclaimer:</b> Tools ini bukan pengganti diagnosis klinis. Jika membutuhkan bantuan hubungi hotline
-    <b>119 ext 8</b> (Kemenkes RI).
+        <b>Disclaimer:</b> Tools ini bukan pengganti diagnosis klinis.
+        Jika membutuhkan bantuan hubungi hotline <b>119 ext 8</b> (Kemenkes RI).
     </div>
     """, unsafe_allow_html=True)
 
@@ -447,14 +467,14 @@ elif page == "📊 Prediksi Terstruktur":
 
             st.markdown("<div class='section-header'>Akademik & Kerja</div>", unsafe_allow_html=True)
             c6, c7, c8 = st.columns(3)
-            cgpa         = c6.slider("CGPA", 0.0, 4.0, 3.0, 0.1)
-            acad_press   = c7.slider("Tekanan Akademik", 0, 5, 3)
-            work_press   = c8.slider("Tekanan Kerja", 0, 5, 2)
+            cgpa       = c6.slider("CGPA", 0.0, 4.0, 3.0, 0.1)
+            acad_press = c7.slider("Tekanan Akademik", 0, 5, 3)
+            work_press = c8.slider("Tekanan Kerja", 0, 5, 2)
 
             c9, c10, c11 = st.columns(3)
-            study_sat   = c9.slider("Kepuasan Belajar", 0, 5, 3)
-            job_sat     = c10.slider("Kepuasan Kerja", 0, 5, 3)
-            work_hours  = c11.slider("Jam Belajar/Kerja/Hari", 0, 12, 7)
+            study_sat  = c9.slider("Kepuasan Belajar", 0, 5, 3)
+            job_sat    = c10.slider("Kepuasan Kerja", 0, 5, 3)
+            work_hours = c11.slider("Jam Belajar/Kerja/Hari", 0, 12, 7)
 
             st.markdown("<div class='section-header'>Gaya Hidup & Kesehatan</div>", unsafe_allow_html=True)
             c12, c13, c14 = st.columns(3)
@@ -481,23 +501,21 @@ elif page == "📊 Prediksi Terstruktur":
             df_input = preprocess_input(user_row)
             for col in cat_features:
                 df_input[col] = df_input[col].astype(str)
-            # Reindex to match training features
             for col in feature_cols:
                 if col not in df_input.columns:
                     df_input[col] = 0
             df_input = df_input[feature_cols]
 
-            proba = model.predict_proba(df_input)[0]
-            risk_pct = int(round(proba[1] * 100))
+            proba      = model.predict_proba(df_input)[0]
+            risk_pct   = int(round(proba[1] * 100))
             pred_label = "Terindikasi Depresi" if proba[1] >= 0.5 else "Tidak Terindikasi Depresi"
-            color = "#f44336" if proba[1] >= 0.5 else "#4caf50"
+            color      = "#f44336" if proba[1] >= 0.5 else "#4caf50"
 
             rcol1, rcol2, rcol3 = st.columns(3)
             rcol1.markdown(f"<div class='metric-card'><div class='metric-val' style='color:{color};'>{risk_pct}%</div><div class='metric-label'>Probabilitas Depresi</div></div>", unsafe_allow_html=True)
             rcol2.markdown(f"<div class='metric-card'><div class='metric-val' style='color:{color};'>{int(round(proba[0]*100))}%</div><div class='metric-label'>Probabilitas Normal</div></div>", unsafe_allow_html=True)
             rcol3.markdown(f"<div class='metric-card'><div class='metric-val' style='color:{color}; font-size:1.2rem;'>{pred_label}</div><div class='metric-label'>Hasil Prediksi</div></div>", unsafe_allow_html=True)
 
-            # Gauge chart
             fig, ax = plt.subplots(figsize=(5, 1))
             fig.patch.set_facecolor('#1e2130')
             ax.set_facecolor('#1e2130')
@@ -505,7 +523,8 @@ elif page == "📊 Prediksi Terstruktur":
             ax.barh(0, risk_pct, color=color, height=0.6)
             ax.axvline(50, color='white', linewidth=1.5, linestyle='--', alpha=0.5)
             ax.text(risk_pct + 1, 0, f'{risk_pct}%', va='center', color='white', fontweight='bold')
-            ax.set_xlim(0, 100); ax.axis('off')
+            ax.set_xlim(0, 100)
+            ax.axis('off')
             ax.set_title('Skor Risiko Depresi', color='#a8b2d8', pad=8)
             plt.tight_layout(pad=0.5)
             st.pyplot(fig, use_container_width=True)
@@ -525,7 +544,7 @@ elif page == "📈 Eksplorasi Data":
     if not model_loaded:
         st.error("Dataset belum dimuat.")
     else:
-        df = df_raw.dropna()
+        df      = df_raw.dropna()
         n_total = len(df)
         n_dep   = df['Depression'].sum()
         pct_dep = n_dep / n_total * 100
@@ -538,7 +557,6 @@ elif page == "📈 Eksplorasi Data":
 
         st.markdown("---")
 
-        # Class Balance + Sleep vs Depression
         fig, axes = plt.subplots(1, 2, figsize=(12, 4))
         fig.patch.set_facecolor('#1e2130')
         for ax in axes:
@@ -546,15 +564,14 @@ elif page == "📈 Eksplorasi Data":
             ax.tick_params(colors='#8892b0')
             ax.spines[:].set_color('#2a2d3e')
 
-        # Class balance
         counts = df['Depression'].value_counts()
         bars = axes[0].bar(['Tidak Depresi', 'Depresi'], counts.values, color=['#4caf50', '#f44336'])
         axes[0].set_title('Distribusi Kelas', color='#a8b2d8', fontsize=12)
         for b in bars:
-            axes[0].text(b.get_x() + b.get_width()/2, b.get_height() + 50, str(int(b.get_height())), ha='center', color='white')
+            axes[0].text(b.get_x() + b.get_width()/2, b.get_height() + 50,
+                         str(int(b.get_height())), ha='center', color='white')
 
-        # Sleep vs Depression
-        sleep_dep = df.groupby(['Sleep Duration', 'Depression']).size().unstack(fill_value=0)
+        sleep_dep   = df.groupby(['Sleep Duration', 'Depression']).size().unstack(fill_value=0)
         sleep_order = ['Less than 5 hours', '5-6 hours', '7-8 hours', 'More than 8 hours']
         sleep_order = [s for s in sleep_order if s in sleep_dep.index]
         sleep_dep   = sleep_dep.reindex(sleep_order)
@@ -563,7 +580,10 @@ elif page == "📈 Eksplorasi Data":
         axes[1].bar(x - w/2, sleep_dep.get(0, [0]*len(x)), width=w, color='#4caf50', label='Normal')
         axes[1].bar(x + w/2, sleep_dep.get(1, [0]*len(x)), width=w, color='#f44336', label='Depresi')
         axes[1].set_xticks(x)
-        axes[1].set_xticklabels([s.replace(' hours', 'h').replace('Less than ', '<').replace('More than ', '>') for s in sleep_dep.index], color='#8892b0', fontsize=8)
+        axes[1].set_xticklabels(
+            [s.replace(' hours', 'h').replace('Less than ', '<').replace('More than ', '>') for s in sleep_dep.index],
+            color='#8892b0', fontsize=8
+        )
         axes[1].set_title('Durasi Tidur vs Depresi', color='#a8b2d8', fontsize=12)
         axes[1].legend(facecolor='#2a2d3e', labelcolor='white')
 
@@ -571,7 +591,6 @@ elif page == "📈 Eksplorasi Data":
         st.pyplot(fig, use_container_width=True)
         plt.close()
 
-        # Numeric distributions
         st.markdown("<div class='section-header'>Distribusi Fitur Numerik</div>", unsafe_allow_html=True)
         num_cols = ['Age', 'CGPA', 'Academic Pressure', 'Work/Study Hours', 'Financial Stress']
         fig, axes = plt.subplots(1, 5, figsize=(16, 3))
@@ -590,13 +609,14 @@ elif page == "📈 Eksplorasi Data":
         st.pyplot(fig, use_container_width=True)
         plt.close()
 
-        # Suicidal thoughts
         st.markdown("<div class='section-header'>Pikiran Bunuh Diri & Riwayat Keluarga</div>", unsafe_allow_html=True)
         fig, axes = plt.subplots(1, 2, figsize=(10, 3.5))
         fig.patch.set_facecolor('#1e2130')
-        for ax, col, title in zip(axes,
+        for ax, col, title in zip(
+            axes,
             ['Have you ever had suicidal thoughts ?', 'Family History of Mental Illness'],
-            ['Pikiran Bunuh Diri vs Depresi', 'Riwayat Keluarga vs Depresi']):
+            ['Pikiran Bunuh Diri vs Depresi', 'Riwayat Keluarga vs Depresi']
+        ):
             ax.set_facecolor('#1e2130')
             ax.tick_params(colors='#8892b0')
             ax.spines[:].set_color('#2a2d3e')
@@ -619,7 +639,6 @@ elif page == "ℹ️ Tentang Model":
     if not model_loaded:
         st.error("Model belum dimuat.")
     else:
-        # Metrics
         prec0 = report['0']['precision']
         rec0  = report['0']['recall']
         f1_0  = report['0']['f1-score']
@@ -667,14 +686,13 @@ elif page == "ℹ️ Tentang Model":
 
             st.markdown("<div class='section-header' style='margin-top:1rem;'>Fitur Engineered</div>", unsafe_allow_html=True)
             st.markdown("""
-            - **Total_Pressure** = Akademik + Kerja + Finansial  
-            - **Satisfaction_Index** = Kepuasan Belajar + Kerja  
-            - **Stress_Satisfaction_Ratio** = Tekanan / (Kepuasan + 1)  
-            - **Sleep_Score** & **Diet_Score** → Ordinal  
-            - **Suicidal_Thoughts** & **Family_History** → Binary  
+            - **Total_Pressure** = Akademik + Kerja + Finansial
+            - **Satisfaction_Index** = Kepuasan Belajar + Kerja
+            - **Stress_Satisfaction_Ratio** = Tekanan / (Kepuasan + 1)
+            - **Sleep_Score** & **Diet_Score** → Ordinal
+            - **Suicidal_Thoughts** & **Family_History** → Binary
             """)
 
-        # Feature importance
         st.markdown("<div class='section-header'>Feature Importance (Top 15)</div>", unsafe_allow_html=True)
         fi = pd.Series(model.get_feature_importance(), index=feature_cols).sort_values(ascending=True).tail(15)
         fig, ax = plt.subplots(figsize=(8, 4))
