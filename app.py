@@ -333,6 +333,17 @@ if page == "🔍 Analisis Teks":
     if should_analyze and user_text.strip():
         with st.spinner("⏳ Menganalisis teks secara lokal..."):
             result = analyze_text_local(user_text.strip())
+    st.markdown("Teks yang dianalisis: ")
+    st.markdown(
+        f"""
+        <div style='background:#1a1d2e; border:1px solid #3a3d5e;
+                    border-radius:10px; padding:1rem 1.1rem; margin-bottom:1rem;
+                    font-size:1rem; color:#e0e6ff; line-height:1.6;'>
+            {highlight_signals(user_text.strip(), result.get("detected_signals", []))}
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
         if "error" in result:
             st.error(f"Gagal menganalisis: {result['error']}")
@@ -361,7 +372,7 @@ if page == "🔍 Analisis Teks":
                     <span style='background:{cat_color}33; color:{cat_color}; padding:0.2rem 0.8rem; border-radius:20px; font-size:0.9rem; font-weight:600;'>
                         {category}
                     </span>
-                    <span style='color:#8892b0; margin-left:1rem; font-size:0.85rem;'>Kepercayaan Model: {conf}%</span>
+                    <span style='color:#8892b0; margin-left:1rem; font-size:0.85rem;'>Akurasi Model: {conf}%</span>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -369,23 +380,26 @@ if page == "🔍 Analisis Teks":
             col1, col2 = st.columns(2)
             with col1:
                 # Progress bar visual
-                fig, ax = plt.subplots(figsize=(4, 0.8))
-                fig.patch.set_facecolor('#1e2130')
-                ax.set_facecolor('#1e2130')
-                ax.barh(0, 100, color='#2a2d3e', height=0.5)
-                bar_color = '#f44336' if risk_pct > 70 else '#ffc107' if risk_pct > 30 else '#4caf50'
-                ax.barh(0, risk_pct, color=bar_color, height=0.5)
-                ax.set_xlim(0, 100); ax.axis('off')
-                ax.text(risk_pct / 2, 0, f'{risk_pct}%', ha='center', va='center', color='white', fontweight='bold', fontsize=11)
-                plt.tight_layout(pad=0)
-                st.pyplot(fig, use_container_width=True)
-                plt.close()
+               bar_color = '#f44336' if risk_pct > 70 else '#ffc107' if risk_pct > 30 else '#4caf50'
+                st.markdown(f"""
+                    <div style='margin-bottom:0.5rem;'>
+                        <div style='height:10px; background:#2a2d3e; border-radius:10px; overflow:hidden;'>
+                    <div style='height:100%; width:{risk_pct}%; background:{bar_color};
+                        border-radius:10px; transition:width 0.5s;'></div>
+                    </div>
+                    <div style='display:flex; justify-content:space-between;
+                            font-size:10px; color:#8892b0; margin-top:3px;'>
+                    <span>0%</span><span>Rendah</span>
+                    <span>Sedang</span><span>Tinggi</span><span>100%</span>
+                    </div>
+                    </div>
+    """, unsafe_allow_html=True)
 
                 st.markdown(f" Nada Emosional: {tone}")
 
             with col2:
                 if signals:
-                    st.markdown("**🔍 Sinyal yang Terdeteksi:**")
+                    st.markdown("**Gangguan Kesehatan yang Terdeteksi:**")
                     for s in signals:
                         st.markdown(f"- `{s}`")
 
