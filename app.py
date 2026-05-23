@@ -470,8 +470,8 @@ if page == "🔍 Analisis Teks":
                 </div>
                 <div style='color:#d4b87a; font-size:0.88rem; line-height:1.7;'>
                     DepreScan hanya dapat menganalisis teks dalam:<br>
-                    &nbsp;&nbsp;🇮🇩 &nbsp;<b>Bahasa Indonesia</b> — contoh: <i>"Aku capek banget, rasanya nggak ada yang peduli..."</i><br>
-                    &nbsp;&nbsp;🇬🇧 &nbsp;<b>English</b> — contoh: <i>"I've been feeling really hopeless lately..."</i><br><br>
+                    &nbsp; &nbsp;<b>Bahasa Indonesia</b> — contoh: <i>"Aku capek banget, rasanya nggak ada yang peduli..."</i><br>
+                    &nbsp; &nbsp;<b>English</b> — contoh: <i>"I've been feeling really hopeless lately..."</i><br><br>
                     Silakan tulis ulang perasaan Anda dalam salah satu bahasa di atas.
                 </div>
             </div>
