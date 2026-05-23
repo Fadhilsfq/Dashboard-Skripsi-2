@@ -502,8 +502,8 @@ if page == "🔍 Analisis Teks":
                 unsafe_allow_html=True
             )
 
-            with st.spinner("⏳ Menganalisis teks secara lokal..."):
-                result = analyze_text_local(user_text.strip())
+        with st.spinner("⏳ Menganalisis teks secara lokal..."):
+            result = analyze_text_local(user_text.strip())
 
         if "error" in result:
             st.error(f"Gagal menganalisis: {result['error']}")
