@@ -195,11 +195,9 @@ def preprocess_input(user_input: dict) -> pd.DataFrame:
 
 # ─── Fungsi Highlight Sinyal ──────────────────────────────────────────────────
 def highlight_signals(text: str, signals: list) -> str:
-    """Bungkus kata sinyal dengan tag <mark> berwarna ungu."""
     highlighted = text
     for signal in signals:
         if signal and signal != "Tidak ada Gangguan Kesehatan yang spesifik":
-            # case-insensitive replace dengan mempertahankan teks asli
             pattern = re.compile(re.escape(signal), re.IGNORECASE)
             highlighted = pattern.sub(
                 lambda m: (
@@ -213,7 +211,6 @@ def highlight_signals(text: str, signals: list) -> str:
 
 # ─── Local Text Analysis ──────────────────────────────────────────────────────
 def analyze_text_local(text: str) -> dict:
-    """Fungsi Rule-Based NLP untuk mendeteksi depresi secara lokal."""
     text_lower = text.lower()
 
     high_risk_words = ['bunuh diri', 'mati', 'suicide', 'kill', 'end it', 'sia-sia', 'selamanya', 'hopeless', 'akhiri', 'berakhir', 'menyerah']
@@ -256,19 +253,14 @@ def analyze_text_local(text: str) -> dict:
         "recommendation": rec,
         "confidence": 85
     }
+
 # ─── Deteksi Bahasa ───────────────────────────────────────────────────────────
 def detect_language(text: str) -> dict:
-    """
-    Deteksi bahasa menggunakan Unicode range check + kata kunci.
-    Mengembalikan dict: {'lang': 'id'|'en'|'unknown', 'label': str, 'allowed': bool}
-    Tidak memerlukan library eksternal.
-    """
     if not text or not text.strip():
         return {'lang': 'empty', 'label': 'Teks kosong', 'allowed': False}
 
     text_check = text.strip()
 
-    # Deteksi karakter non-Latin (blokir)
     blocked_ranges = [
         (0x0600, 0x06FF, 'Arab'),
         (0x0750, 0x077F, 'Arab Tambahan'),
@@ -298,7 +290,7 @@ def detect_language(text: str) -> dict:
         (0x1100, 0x11FF, 'Hangul Jamo'),
         (0xA000, 0xA48F, 'Yi'),
         (0x0250, 0x02AF, 'IPA Extensions'),
-        (0x1E00, 0x1EFF, 'Latin Extended Additional'),  # sebagian — hanya blokir jika dominan
+        (0x1E00, 0x1EFF, 'Latin Extended Additional'),
     ]
 
     total_chars   = len([c for c in text_check if not c.isspace()])
@@ -313,7 +305,6 @@ def detect_language(text: str) -> dict:
                 detected_scripts.add(script_name)
                 break
 
-    # Tolak jika lebih dari 15% karakter dari script yang tidak diizinkan
     if total_chars > 0 and (blocked_count / total_chars) > 0.15:
         scripts_found = ', '.join(list(detected_scripts)[:3])
         return {
@@ -323,11 +314,10 @@ def detect_language(text: str) -> dict:
             'blocked_ratio': round(blocked_count / total_chars, 2)
         }
 
-    # Kata kunci khas Bahasa Indonesia 
     id_keywords = [
         'aku', 'saya', 'kamu', 'kami', 'kita', 'mereka', 'dia', 'ini', 'itu',
         'yang', 'dan', 'atau', 'tidak', 'bukan', 'dengan', 'untuk', 'dari',
-        'sudah', 'belum', 'sedang', 'akan', 'sudah', 'juga', 'hanya', 'sangat',
+        'sudah', 'belum', 'sedang', 'akan', 'juga', 'hanya', 'sangat',
         'sekali', 'banget', 'gimana', 'kenapa', 'karena', 'kalau', 'tapi',
         'rasanya', 'capek', 'lelah', 'nggak', 'gak', 'udah', 'lagi', 'aja',
         'dong', 'sih', 'deh', 'yah', 'mau', 'bisa', 'harus', 'boleh', 'perlu',
@@ -336,7 +326,6 @@ def detect_language(text: str) -> dict:
         'adalah', 'seperti', 'bahwa', 'ketika', 'setelah', 'sebelum',
     ]
 
-    # Kata kunci khas Bahasa Inggris 
     en_keywords = [
         'i', 'you', 'he', 'she', 'we', 'they', 'it', 'this', 'that',
         'the', 'a', 'an', 'and', 'or', 'not', 'with', 'for', 'from',
@@ -351,7 +340,6 @@ def detect_language(text: str) -> dict:
 
     words = re.findall(r'\b[a-zA-Z]+\b', text_check.lower())
     if not words:
-        # Teks mungkin hanya angka/simbol — izinkan dengan fallback
         return {'lang': 'id', 'label': 'Bahasa Indonesia (fallback)', 'allowed': True}
 
     id_score = sum(1 for w in words if w in id_keywords)
@@ -360,7 +348,6 @@ def detect_language(text: str) -> dict:
     id_ratio = id_score / len(words)
     en_ratio = en_score / len(words)
 
-    # Threshold: minimal 5% kata kunci OR minimal ada 1 kata kunci jika teks pendek
     min_threshold = 0.05 if len(words) >= 5 else 0
 
     if id_ratio >= en_ratio and (id_ratio > min_threshold or id_score > 0):
@@ -368,7 +355,6 @@ def detect_language(text: str) -> dict:
     elif en_ratio > min_threshold or en_score > 0:
         return {'lang': 'en', 'label': 'English', 'allowed': True}
     elif len(words) <= 3:
-        # Teks sangat pendek — beri keuntungan
         return {'lang': 'id', 'label': 'Bahasa Indonesia (teks pendek)', 'allowed': True}
     else:
         return {
@@ -377,7 +363,8 @@ def detect_language(text: str) -> dict:
             'allowed': False,
             'blocked_ratio': 0.0
         }
-# Sidebar 
+
+# ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("## 🧠 DepreScan")
     st.markdown("---")
@@ -458,18 +445,18 @@ if page == "🔍 Analisis Teks":
                 st.session_state["auto_analyze"] = True
                 st.rerun()
 
-    # Ambil teks dari pintasan jika ada
     if "auto_text" in st.session_state:
         user_text = st.session_state.pop("auto_text")
 
     should_analyze = analyze_btn or st.session_state.pop("auto_analyze", False)
 
-    # Analysis Result 
+    # ── Analysis Result ───────────────────────────────────────────────────────
     if should_analyze and user_text.strip():
-        # Validasi bahasa sebelum analisis 
+
         lang_result = detect_language(user_text.strip())
 
         if not lang_result['allowed']:
+            # ── Bahasa tidak didukung: tampilkan error, BERHENTI di sini ──
             st.markdown(f"""
             <div style='background:linear-gradient(135deg,#2d1a00,#3d2200);
                         border:1px solid #b86a00; border-radius:14px;
@@ -491,7 +478,7 @@ if page == "🔍 Analisis Teks":
             """, unsafe_allow_html=True)
 
         else:
-            # Tampilkan badge bahasa yang terdeteksi
+            # ── Bahasa valid: tampilkan badge lalu jalankan analisis ──
             lang_badge_color = '#4caf50' if lang_result['lang'] == 'id' else '#2196f3'
             lang_flag = '🇮🇩' if lang_result['lang'] == 'id' else '🇬🇧'
             st.markdown(
@@ -502,94 +489,93 @@ if page == "🔍 Analisis Teks":
                 unsafe_allow_html=True
             )
 
-        with st.spinner("⏳ Menganalisis teks secara lokal..."):
-            result = analyze_text_local(user_text.strip())
+            with st.spinner("⏳ Menganalisis teks secara lokal..."):
+                result = analyze_text_local(user_text.strip())
 
-        if "error" in result:
-            st.error(f"Gagal menganalisis: {result['error']}")
-        else:
-            risk_pct  = result.get("risk_percentage", 0)
-            category  = result.get("category", "RENDAH")
-            signals   = result.get("detected_signals", [])
-            tone      = result.get("emotional_tone", "-")
-            rec       = result.get("recommendation", "-")
-            conf      = result.get("confidence", 0)
+            if "error" in result:
+                st.error(f"Gagal menganalisis: {result['error']}")
+            else:
+                risk_pct  = result.get("risk_percentage", 0)
+                category  = result.get("category", "RENDAH")
+                signals   = result.get("detected_signals", [])
+                tone      = result.get("emotional_tone", "-")
+                rec       = result.get("recommendation", "-")
+                conf      = result.get("confidence", 0)
 
-            # ── Kotak preview teks yang dianalisis ──
-            st.markdown("<div class='section-header'>📝 Teks yang Dianalisis</div>", unsafe_allow_html=True)
-            st.markdown(
-                f"""
-                <div style='background:#1a1d2e; border:1px solid #3a3d5e;
-                            border-radius:10px; padding:1rem 1.1rem; margin-bottom:1rem;
-                            font-size:1rem; color:#e0e6ff; line-height:1.6;'>
-                    {highlight_signals(user_text.strip(), signals)}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-            # ── Kartu hasil ──
-            cat_class = {"RENDAH": "result-low", "SEDANG": "result-mid", "TINGGI": "result-high"}.get(category, "result-low")
-            cat_color = {"RENDAH": "#4caf50", "SEDANG": "#ffc107", "TINGGI": "#f44336"}.get(category, "#4caf50")
-            cat_icon  = {"RENDAH": "✅", "SEDANG": "⚠️", "TINGGI": "🚨"}.get(category, "✅")
-
-            st.markdown(f"""
-            <div class='result-card {cat_class}'>
-                <div style='display:flex; justify-content:space-between; align-items:center;'>
-                    <div>
-                        <span style='font-size:1.8rem; font-weight:700; color:{cat_color};'>{risk_pct}%</span>
-                        <span style='color:#8892b0; margin-left:0.5rem;'>Risiko Depresi</span>
+                # ── Kotak preview teks yang dianalisis ──
+                st.markdown("<div class='section-header'>📝 Teks yang Dianalisis</div>", unsafe_allow_html=True)
+                st.markdown(
+                    f"""
+                    <div style='background:#1a1d2e; border:1px solid #3a3d5e;
+                                border-radius:10px; padding:1rem 1.1rem; margin-bottom:1rem;
+                                font-size:1rem; color:#e0e6ff; line-height:1.6;'>
+                        {highlight_signals(user_text.strip(), signals)}
                     </div>
-                    <div style='font-size:2.5rem;'>{cat_icon}</div>
-                </div>
-                <div style='margin-top:0.8rem;'>
-                    <span style='background:{cat_color}33; color:{cat_color}; padding:0.2rem 0.8rem;
-                                 border-radius:20px; font-size:0.9rem; font-weight:600;'>
-                        {category}
-                    </span>
-                    <span style='color:#8892b0; margin-left:1rem; font-size:0.85rem;'>
-                        Akurasi Model: {conf}%
-                    </span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+                    """,
+                    unsafe_allow_html=True
+                )
 
-            col1, col2 = st.columns(2)
-            with col1:
-                # Progress bar HTML
-                bar_color = '#f44336' if risk_pct > 70 else '#ffc107' if risk_pct > 30 else '#4caf50'
+                # ── Kartu hasil ──
+                cat_class = {"RENDAH": "result-low", "SEDANG": "result-mid", "TINGGI": "result-high"}.get(category, "result-low")
+                cat_color = {"RENDAH": "#4caf50", "SEDANG": "#ffc107", "TINGGI": "#f44336"}.get(category, "#4caf50")
+                cat_icon  = {"RENDAH": "✅", "SEDANG": "⚠️", "TINGGI": "🚨"}.get(category, "✅")
+
                 st.markdown(f"""
-                <div style='margin:0.8rem 0 0.4rem;'>
-                    <div style='height:10px; background:#2a2d3e; border-radius:10px; overflow:hidden;'>
-                        <div style='height:100%; width:{risk_pct}%; background:{bar_color};
-                                    border-radius:10px;'></div>
+                <div class='result-card {cat_class}'>
+                    <div style='display:flex; justify-content:space-between; align-items:center;'>
+                        <div>
+                            <span style='font-size:1.8rem; font-weight:700; color:{cat_color};'>{risk_pct}%</span>
+                            <span style='color:#8892b0; margin-left:0.5rem;'>Risiko Depresi</span>
+                        </div>
+                        <div style='font-size:2.5rem;'>{cat_icon}</div>
                     </div>
-                    <div style='display:flex; justify-content:space-between;
-                                font-size:10px; color:#8892b0; margin-top:3px;'>
-                        <span>0%</span><span>Rendah</span>
-                        <span>Sedang</span><span>Tinggi</span><span>100%</span>
+                    <div style='margin-top:0.8rem;'>
+                        <span style='background:{cat_color}33; color:{cat_color}; padding:0.2rem 0.8rem;
+                                     border-radius:20px; font-size:0.9rem; font-weight:600;'>
+                            {category}
+                        </span>
+                        <span style='color:#8892b0; margin-left:1rem; font-size:0.85rem;'>
+                            Akurasi Model: {conf}%
+                        </span>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
-                st.markdown(f"Nada Emosional: {tone}")
 
-            with col2:
-                st.markdown("Gangguan Kesehatan yang Terdeteksi:")
-                for s in signals:
-                    st.markdown(f"- `{s}`")
+                col1, col2 = st.columns(2)
+                with col1:
+                    bar_color = '#f44336' if risk_pct > 70 else '#ffc107' if risk_pct > 30 else '#4caf50'
+                    st.markdown(f"""
+                    <div style='margin:0.8rem 0 0.4rem;'>
+                        <div style='height:10px; background:#2a2d3e; border-radius:10px; overflow:hidden;'>
+                            <div style='height:100%; width:{risk_pct}%; background:{bar_color};
+                                        border-radius:10px;'></div>
+                        </div>
+                        <div style='display:flex; justify-content:space-between;
+                                    font-size:10px; color:#8892b0; margin-top:3px;'>
+                            <span>0%</span><span>Rendah</span>
+                            <span>Sedang</span><span>Tinggi</span><span>100%</span>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    st.markdown(f"Nada Emosional: {tone}")
 
-            st.markdown(f"""
-            <div style='background:#1a2030; border-left:3px solid #7c83fd; padding:1rem;
-                        border-radius:0 10px 10px 0; margin-top:1rem;'>
-                <b style='color:#a8b2d8;'> Rekomendasi</b><br>
-                <span style='color:#ccd6f6;'>{rec}</span>
-            </div>
-            """, unsafe_allow_html=True)
+                with col2:
+                    st.markdown("Gangguan Kesehatan yang Terdeteksi:")
+                    for s in signals:
+                        st.markdown(f"- `{s}`")
 
-            if category == "TINGGI":
-                st.error("🚨 **Perhatian:** Teks menunjukkan risiko tinggi. Segera hubungi profesional kesehatan mental atau hotline **119 ext 8** (Kemenkes RI) atau **1500-454** (Into The Light Indonesia).")
-            elif category == "SEDANG":
-                st.warning("⚠️ **Perhatian:** Ada beberapa tanda yang perlu diperhatikan. Pertimbangkan untuk berbicara dengan seseorang yang Anda percaya atau konsultan kesehatan.")
+                st.markdown(f"""
+                <div style='background:#1a2030; border-left:3px solid #7c83fd; padding:1rem;
+                            border-radius:0 10px 10px 0; margin-top:1rem;'>
+                    <b style='color:#a8b2d8;'> Rekomendasi</b><br>
+                    <span style='color:#ccd6f6;'>{rec}</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+                if category == "TINGGI":
+                    st.error("🚨 **Perhatian:** Teks menunjukkan risiko tinggi. Segera hubungi profesional kesehatan mental atau hotline **119 ext 8** (Kemenkes RI) atau **1500-454** (Into The Light Indonesia).")
+                elif category == "SEDANG":
+                    st.warning("⚠️ **Perhatian:** Ada beberapa tanda yang perlu diperhatikan. Pertimbangkan untuk berbicara dengan seseorang yang Anda percaya atau konsultan kesehatan.")
 
     elif analyze_btn:
         st.info("Silakan masukkan teks terlebih dahulu.")
