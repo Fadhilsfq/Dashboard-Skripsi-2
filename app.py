@@ -256,8 +256,128 @@ def analyze_text_local(text: str) -> dict:
         "recommendation": rec,
         "confidence": 85
     }
+# ─── Deteksi Bahasa ───────────────────────────────────────────────────────────
+def detect_language(text: str) -> dict:
+    """
+    Deteksi bahasa menggunakan Unicode range check + kata kunci.
+    Mengembalikan dict: {'lang': 'id'|'en'|'unknown', 'label': str, 'allowed': bool}
+    Tidak memerlukan library eksternal.
+    """
+    if not text or not text.strip():
+        return {'lang': 'empty', 'label': 'Teks kosong', 'allowed': False}
 
-# ─── Sidebar ──────────────────────────────────────────────────────────────────
+    text_check = text.strip()
+
+    # Deteksi karakter non-Latin (blokir)
+    blocked_ranges = [
+        (0x0600, 0x06FF, 'Arab'),
+        (0x0750, 0x077F, 'Arab Tambahan'),
+        (0x08A0, 0x08FF, 'Arab Extended'),
+        (0x0400, 0x04FF, 'Cyrillic'),
+        (0x0500, 0x052F, 'Cyrillic Supplement'),
+        (0x0E00, 0x0E7F, 'Thai'),
+        (0x0900, 0x097F, 'Devanagari'),
+        (0x0980, 0x09FF, 'Bengali'),
+        (0x0A80, 0x0AFF, 'Gujarati'),
+        (0x0B00, 0x0B7F, 'Oriya'),
+        (0x0C00, 0x0C7F, 'Telugu'),
+        (0x0C80, 0x0CFF, 'Kannada'),
+        (0x0D00, 0x0D7F, 'Malayalam'),
+        (0x0B80, 0x0BFF, 'Tamil'),
+        (0x1000, 0x109F, 'Myanmar'),
+        (0x1780, 0x17FF, 'Khmer'),
+        (0x0E80, 0x0EFF, 'Lao'),
+        (0x0F00, 0x0FFF, 'Tibet'),
+        (0x4E00, 0x9FFF, 'CJK Unified'),
+        (0x3400, 0x4DBF, 'CJK Extension A'),
+        (0x20000, 0x2A6DF, 'CJK Extension B'),
+        (0x3000, 0x303F, 'CJK Symbols'),
+        (0x3040, 0x309F, 'Hiragana'),
+        (0x30A0, 0x30FF, 'Katakana'),
+        (0xAC00, 0xD7AF, 'Hangul'),
+        (0x1100, 0x11FF, 'Hangul Jamo'),
+        (0xA000, 0xA48F, 'Yi'),
+        (0x0250, 0x02AF, 'IPA Extensions'),
+        (0x1E00, 0x1EFF, 'Latin Extended Additional'),  # sebagian — hanya blokir jika dominan
+    ]
+
+    total_chars   = len([c for c in text_check if not c.isspace()])
+    blocked_count = 0
+    detected_scripts = set()
+
+    for char in text_check:
+        cp = ord(char)
+        for start, end, script_name in blocked_ranges:
+            if start <= cp <= end:
+                blocked_count += 1
+                detected_scripts.add(script_name)
+                break
+
+    # Tolak jika lebih dari 15% karakter dari script yang tidak diizinkan
+    if total_chars > 0 and (blocked_count / total_chars) > 0.15:
+        scripts_found = ', '.join(list(detected_scripts)[:3])
+        return {
+            'lang': 'unknown',
+            'label': f'Script tidak didukung: {scripts_found}',
+            'allowed': False,
+            'blocked_ratio': round(blocked_count / total_chars, 2)
+        }
+
+    # Kata kunci khas Bahasa Indonesia 
+    id_keywords = [
+        'aku', 'saya', 'kamu', 'kami', 'kita', 'mereka', 'dia', 'ini', 'itu',
+        'yang', 'dan', 'atau', 'tidak', 'bukan', 'dengan', 'untuk', 'dari',
+        'sudah', 'belum', 'sedang', 'akan', 'sudah', 'juga', 'hanya', 'sangat',
+        'sekali', 'banget', 'gimana', 'kenapa', 'karena', 'kalau', 'tapi',
+        'rasanya', 'capek', 'lelah', 'nggak', 'gak', 'udah', 'lagi', 'aja',
+        'dong', 'sih', 'deh', 'yah', 'mau', 'bisa', 'harus', 'boleh', 'perlu',
+        'pengen', 'ingin', 'mungkin', 'pasti', 'tetapi', 'namun', 'walau',
+        'meskipun', 'sebenarnya', 'memang', 'bagaimana', 'mengapa', 'apakah',
+        'adalah', 'seperti', 'bahwa', 'ketika', 'setelah', 'sebelum',
+    ]
+
+    # Kata kunci khas Bahasa Inggris 
+    en_keywords = [
+        'i', 'you', 'he', 'she', 'we', 'they', 'it', 'this', 'that',
+        'the', 'a', 'an', 'and', 'or', 'not', 'with', 'for', 'from',
+        'have', 'has', 'had', 'am', 'is', 'are', 'was', 'were', 'be',
+        'been', 'do', 'does', 'did', 'will', 'would', 'could', 'should',
+        'can', 'may', 'might', 'must', 'feel', 'feeling', 'felt',
+        'really', 'very', 'just', 'also', 'only', 'still', 'already',
+        'always', 'never', 'sometimes', 'often', 'because', 'when',
+        'what', 'how', 'why', 'who', 'where', 'want', 'need', 'think',
+        'know', 'get', 'going', 'like', 'make', 'about', 'there',
+    ]
+
+    words = re.findall(r'\b[a-zA-Z]+\b', text_check.lower())
+    if not words:
+        # Teks mungkin hanya angka/simbol — izinkan dengan fallback
+        return {'lang': 'id', 'label': 'Bahasa Indonesia (fallback)', 'allowed': True}
+
+    id_score = sum(1 for w in words if w in id_keywords)
+    en_score = sum(1 for w in words if w in en_keywords)
+
+    id_ratio = id_score / len(words)
+    en_ratio = en_score / len(words)
+
+    # Threshold: minimal 5% kata kunci OR minimal ada 1 kata kunci jika teks pendek
+    min_threshold = 0.05 if len(words) >= 5 else 0
+
+    if id_ratio >= en_ratio and (id_ratio > min_threshold or id_score > 0):
+        return {'lang': 'id', 'label': 'Bahasa Indonesia', 'allowed': True}
+    elif en_ratio > min_threshold or en_score > 0:
+        return {'lang': 'en', 'label': 'English', 'allowed': True}
+    elif len(words) <= 3:
+        # Teks sangat pendek — beri keuntungan
+        return {'lang': 'id', 'label': 'Bahasa Indonesia (teks pendek)', 'allowed': True}
+    else:
+        return {
+            'lang': 'unknown',
+            'label': 'Bahasa tidak dikenali',
+            'allowed': False,
+            'blocked_ratio': 0.0
+        }
+# Sidebar 
 with st.sidebar:
     st.markdown("## 🧠 DepreScan")
     st.markdown("---")
@@ -344,10 +464,46 @@ if page == "🔍 Analisis Teks":
 
     should_analyze = analyze_btn or st.session_state.pop("auto_analyze", False)
 
-    # ── Analysis Result ───────────────────────────────────────────────────────
+    # Analysis Result 
     if should_analyze and user_text.strip():
-        with st.spinner("⏳ Menganalisis teks secara lokal..."):
-            result = analyze_text_local(user_text.strip())
+        # Validasi bahasa sebelum analisis 
+        lang_result = detect_language(user_text.strip())
+
+        if not lang_result['allowed']:
+            st.markdown(f"""
+            <div style='background:linear-gradient(135deg,#2d1a00,#3d2200);
+                        border:1px solid #b86a00; border-radius:14px;
+                        padding:1.5rem; margin-top:1rem;'>
+                <div style='font-size:1.6rem; margin-bottom:0.5rem;'>🌐</div>
+                <div style='font-size:1.1rem; font-weight:700; color:#ffc107; margin-bottom:0.4rem;'>
+                    Bahasa Tidak Didukung
+                </div>
+                <div style='color:#e0c88a; font-size:0.95rem; margin-bottom:0.8rem;'>
+                    Terdeteksi: <b>{lang_result['label']}</b>
+                </div>
+                <div style='color:#d4b87a; font-size:0.88rem; line-height:1.7;'>
+                    DepreScan hanya dapat menganalisis teks dalam:<br>
+                    &nbsp;&nbsp;🇮🇩 &nbsp;<b>Bahasa Indonesia</b> — contoh: <i>"Aku capek banget, rasanya nggak ada yang peduli..."</i><br>
+                    &nbsp;&nbsp;🇬🇧 &nbsp;<b>English</b> — contoh: <i>"I've been feeling really hopeless lately..."</i><br><br>
+                    Silakan tulis ulang perasaan Anda dalam salah satu bahasa di atas.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        else:
+            # Tampilkan badge bahasa yang terdeteksi
+            lang_badge_color = '#4caf50' if lang_result['lang'] == 'id' else '#2196f3'
+            lang_flag = '🇮🇩' if lang_result['lang'] == 'id' else '🇬🇧'
+            st.markdown(
+                f"<span style='background:{lang_badge_color}22; color:{lang_badge_color}; "
+                f"border:1px solid {lang_badge_color}55; padding:0.2rem 0.75rem; "
+                f"border-radius:20px; font-size:0.82rem; font-weight:600;'>"
+                f"{lang_flag} {lang_result['label']} terdeteksi</span>",
+                unsafe_allow_html=True
+            )
+
+            with st.spinner("⏳ Menganalisis teks secara lokal..."):
+                result = analyze_text_local(user_text.strip())
 
         if "error" in result:
             st.error(f"Gagal menganalisis: {result['error']}")
