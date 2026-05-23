@@ -318,7 +318,7 @@ if page == "🔍 Analisis Teks":
         <div class='metric-card'>
             <div class='metric-label'>Bahasa yang didukung</div>
             <div style='color:#7c83fd; font-weight:700; font-size:1rem;'>
-                🇮🇩 Bahasa Indonesia<br>🇬🇧 English
+                Bahasa Indonesia<br> English
             </div>
         </div>
         """, unsafe_allow_html=True)
