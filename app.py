@@ -693,8 +693,8 @@ elif page == "📈 Eksplorasi Data":
 
         c1, c2, c3, c4 = st.columns(4)
         c1.markdown(f"<div class='metric-card'><div class='metric-val'>{n_total:,}</div><div class='metric-label'>Total Data</div></div>", unsafe_allow_html=True)
-        c2.markdown(f"<div class='metric-card'><div class='metric-val' style='color:#f44336;'>{n_dep:,}</div><div class='metric-label'>Terdepresi</div></div>", unsafe_allow_html=True)
-        c3.markdown(f"<div class='metric-card'><div class='metric-val' style='color:#4caf50;'>{n_total - n_dep:,}</div><div class='metric-label'>Tidak Terdepresi</div></div>", unsafe_allow_html=True)
+        c2.markdown(f"<div class='metric-card'><div class='metric-val' style='color:#f44336;'>{n_dep:,}</div><div class='metric-label'>Depresi</div></div>", unsafe_allow_html=True)
+        c3.markdown(f"<div class='metric-card'><div class='metric-val' style='color:#4caf50;'>{n_total - n_dep:,}</div><div class='metric-label'>Tidak Depresi</div></div>", unsafe_allow_html=True)
         c4.markdown(f"<div class='metric-card'><div class='metric-val'>{pct_dep:.1f}%</div><div class='metric-label'>Prevalensi Depresi</div></div>", unsafe_allow_html=True)
 
         st.markdown("---")
